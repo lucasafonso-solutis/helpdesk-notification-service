@@ -9,9 +9,7 @@ import org.springframework.stereotype.Component;
 
 import solutis.lucas.afonso.helpdesk.controllers.NotificationController;
 import solutis.lucas.afonso.helpdesk.config.RabbitMQConfig;
-import solutis.lucas.afonso.helpdesk.model.Notification;
-
-import java.time.LocalDateTime;
+import solutis.lucas.afonso.helpdesk.dtos.NotificationDTO;
 
 @Component
 public class NotificationEventListener {
@@ -24,8 +22,7 @@ public class NotificationEventListener {
 	}
 
 	@RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
-	public void receive(String payload, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey)
-			throws Exception {
+	public void receive(String payload, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey) throws Exception {
 		JsonNode event = objectMapper.readTree(payload);
 		Long ticketId = longValue(event, "ticketId");
 		Long customerId = longValue(event, "customerId");
@@ -33,8 +30,7 @@ public class NotificationEventListener {
 		String status = textValue(event, "status");
 		String message = createMessage(routingKey, event, ticketId);
 
-		notificationController.save(new Notification(routingKey, ticketId, customerId, technicianId,
-				status, message, LocalDateTime.now()));
+		notificationController.create(new NotificationDTO(null, routingKey, ticketId, customerId, technicianId, status, message, null));
 	}
 
 	private String createMessage(String routingKey, JsonNode event, Long ticketId) {
