@@ -1,5 +1,6 @@
 package solutis.lucas.afonso.helpdesk.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
@@ -12,6 +13,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
     public static final String NOTIFICATION_QUEUE = "notification-service.queue";
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 
     @Bean
     public DirectExchange helpdeskExchange(@Value("${notification.rabbitmq.exchange}") String exchangeName) {

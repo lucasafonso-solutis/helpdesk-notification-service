@@ -17,6 +17,15 @@ public class NotificationService {
 	}
 
 	public NotificationDTO create(NotificationDTO notificationDTO) {
+		if (notificationDTO.messageId() != null) {
+			return notificationRepository.findByMessageId(notificationDTO.messageId())
+				.map(NotificationDTO::new)
+				.orElseGet(() -> save(notificationDTO));
+		}
+		return save(notificationDTO);
+	}
+
+	private NotificationDTO save(NotificationDTO notificationDTO) {
 		Notification notification = new Notification(notificationDTO);
 		notification = notificationRepository.save(notification);
 

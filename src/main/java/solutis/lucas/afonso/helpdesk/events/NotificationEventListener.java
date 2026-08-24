@@ -22,7 +22,8 @@ public class NotificationEventListener {
 	}
 
 	@RabbitListener(queues = "${notification.rabbitmq.queue}")
-	public void receive(String payload, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey) throws Exception {
+	public void receive(String payload, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
+			@Header(name = AmqpHeaders.MESSAGE_ID, required = false) String messageId) throws Exception {
 		JsonNode event = objectMapper.readTree(payload);
 		Long ticketId = longValue(event, "ticketId");
 		Long customerId = longValue(event, "customerId");
@@ -31,7 +32,7 @@ public class NotificationEventListener {
 		String message = createMessage(routingKey, event, ticketId);
 		EventType eventType = eventTypeFor(routingKey);
 
-		notificationService.create(new NotificationDTO(null, eventType, ticketId, customerId, technicianId, status, message, null));
+		notificationService.create(new NotificationDTO(null, messageId, eventType, ticketId, customerId, technicianId, status, message, null));
 	}
 
 	private EventType eventTypeFor(String routingKey) {
@@ -46,10 +47,8 @@ public class NotificationEventListener {
 	private String createMessage(String routingKey, JsonNode event, Long ticketId) {
 		return switch (routingKey) {
 			case "ticket.created" -> "Ticket " + ticketId + " created";
-			case "ticket.assigned" -> "Ticket " + ticketId + " assigned to technician "
-					+ longValue(event, "technicianId");
-			case "ticket.status.changed" -> "Ticket " + ticketId + " changed to status "
-					+ textValue(event, "status");
+			case "ticket.assigned" -> "Ticket " + ticketId + " assigned to technician " + longValue(event, "technicianId");
+			case "ticket.status.changed" -> "Ticket " + ticketId + " changed to status " + textValue(event, "status");
 			default -> "Ticket " + ticketId + " event received";
 		};
 	}
