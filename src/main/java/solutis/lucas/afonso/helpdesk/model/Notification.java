@@ -1,6 +1,8 @@
 package solutis.lucas.afonso.helpdesk.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,7 +15,8 @@ public class Notification {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	private String eventType;
+	@Enumerated(EnumType.STRING)
+	private EventType eventType;
 	private Long ticketId;
 	private Long customerId;
 	private Long technicianId;
@@ -24,7 +27,7 @@ public class Notification {
 	public Notification() {
 	}
 
-	public Notification(String eventType, Long ticketId, Long customerId, Long technicianId, String status, String message, LocalDateTime createdAt) {
+	public Notification(EventType eventType, Long ticketId, Long customerId, Long technicianId, String status, String message, LocalDateTime createdAt) {
 		this.eventType = eventType;
 		this.ticketId = ticketId;
 		this.customerId = customerId;
@@ -52,11 +55,11 @@ public class Notification {
 		this.id = id;
 	}
 
-	public String getEventType() {
+	public EventType getEventType() {
 		return eventType;
 	}
 
-	public void setEventType(String eventType) {
+	public void setEventType(EventType eventType) {
 		this.eventType = eventType;
 	}
 

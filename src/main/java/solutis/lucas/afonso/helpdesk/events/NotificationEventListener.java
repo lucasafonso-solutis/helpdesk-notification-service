@@ -7,21 +7,21 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
-import solutis.lucas.afonso.helpdesk.controllers.NotificationController;
-import solutis.lucas.afonso.helpdesk.config.RabbitMQConfig;
 import solutis.lucas.afonso.helpdesk.dtos.NotificationDTO;
+import solutis.lucas.afonso.helpdesk.model.EventType;
+import solutis.lucas.afonso.helpdesk.services.NotificationService;
 
 @Component
 public class NotificationEventListener {
 	private final ObjectMapper objectMapper;
-	private final NotificationController notificationController;
+	private final NotificationService notificationService;
 
-	public NotificationEventListener(ObjectMapper objectMapper, NotificationController notificationController) {
+	public NotificationEventListener(ObjectMapper objectMapper, NotificationService notificationService) {
 		this.objectMapper = objectMapper;
-		this.notificationController = notificationController;
+		this.notificationService = notificationService;
 	}
 
-	@RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
+	@RabbitListener(queues = "${notification.rabbitmq.queue}")
 	public void receive(String payload, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey) throws Exception {
 		JsonNode event = objectMapper.readTree(payload);
 		Long ticketId = longValue(event, "ticketId");
@@ -29,8 +29,18 @@ public class NotificationEventListener {
 		Long technicianId = longValue(event, "technicianId");
 		String status = textValue(event, "status");
 		String message = createMessage(routingKey, event, ticketId);
+		EventType eventType = eventTypeFor(routingKey);
 
-		notificationController.create(new NotificationDTO(null, routingKey, ticketId, customerId, technicianId, status, message, null));
+		notificationService.create(new NotificationDTO(null, eventType, ticketId, customerId, technicianId, status, message, null));
+	}
+
+	private EventType eventTypeFor(String routingKey) {
+		return switch (routingKey) {
+			case "ticket.created" -> EventType.TICKET_CREATED;
+			case "ticket.assigned" -> EventType.TICKET_ASSIGNED;
+			case "ticket.status.changed" -> EventType.TICKET_STATUS_CHANGED;
+			default -> throw new IllegalArgumentException("Unsupported notification event: " + routingKey);
+		};
 	}
 
 	private String createMessage(String routingKey, JsonNode event, Long ticketId) {

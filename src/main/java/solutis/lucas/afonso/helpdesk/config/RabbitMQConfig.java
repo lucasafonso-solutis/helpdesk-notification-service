@@ -19,8 +19,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue notificationQueue() {
-        return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
+    public Queue notificationQueue(@Value("${notification.rabbitmq.queue}") String queueName) {
+        return QueueBuilder.durable(queueName).build();
     }
 
     @Bean
