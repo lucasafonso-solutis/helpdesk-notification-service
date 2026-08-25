@@ -2,6 +2,8 @@ package solutis.lucas.afonso.helpdesk.events;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -23,16 +25,21 @@ public class NotificationEventListener {
 
 	@RabbitListener(queues = "${notification.rabbitmq.queue}")
 	public void receive(String payload, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
-			@Header(name = AmqpHeaders.MESSAGE_ID, required = false) String messageId) throws Exception {
-		JsonNode event = objectMapper.readTree(payload);
-		Long ticketId = longValue(event, "ticketId");
-		Long customerId = longValue(event, "customerId");
-		Long technicianId = longValue(event, "technicianId");
-		String status = textValue(event, "status");
-		String message = createMessage(routingKey, event, ticketId);
-		EventType eventType = eventTypeFor(routingKey);
+			@Header(name = AmqpHeaders.MESSAGE_ID, required = false) String messageId) {
+		try {
+			JsonNode event = objectMapper.readTree(payload);
+			Long ticketId = longValue(event, "ticketId");
+			Long customerId = longValue(event, "customerId");
+			Long technicianId = longValue(event, "technicianId");
+			String status = textValue(event, "status");
+			String message = createMessage(routingKey, event, ticketId);
+			EventType eventType = eventTypeFor(routingKey);
 
-		notificationService.create(new NotificationDTO(null, messageId, eventType, ticketId, customerId, technicianId, status, message, null));
+			notificationService.create(new NotificationDTO(null, messageId, eventType, ticketId, customerId, technicianId, status, message, null));
+		} catch (JsonProcessingException | IllegalArgumentException exception) {
+			throw new AmqpRejectAndDontRequeueException(
+					"Invalid notification event", exception);
+		}
 	}
 
 	private EventType eventTypeFor(String routingKey) {
