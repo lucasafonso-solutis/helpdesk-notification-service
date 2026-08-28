@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,8 +26,27 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue notificationQueue(@Value("${notification.rabbitmq.queue}") String queueName) {
-        return QueueBuilder.durable(queueName).build();
+    public FanoutExchange notificationDeadLetterExchange(@Value("${notification.rabbitmq.dlx}") String dlxName) {
+        return new FanoutExchange(dlxName, true, false);
+    }
+
+    @Bean
+    public Queue notificationDeadLetterQueue(@Value("${notification.rabbitmq.dlq}") String dlqName) {
+        return QueueBuilder.durable(dlqName).build();
+    }
+
+    @Bean
+    public Binding notificationDeadLetterBinding(Queue notificationDeadLetterQueue,
+            FanoutExchange notificationDeadLetterExchange) {
+        return BindingBuilder.bind(notificationDeadLetterQueue).to(notificationDeadLetterExchange);
+    }
+
+    @Bean
+    public Queue notificationQueue(@Value("${notification.rabbitmq.queue}") String queueName,
+            @Value("${notification.rabbitmq.dlx}") String dlxName) {
+        return QueueBuilder.durable(queueName)
+                .withArgument("x-dead-letter-exchange", dlxName)
+                .build();
     }
 
     @Bean
